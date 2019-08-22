@@ -6,13 +6,13 @@
 #include <random>
 
 // good candidate for templating:
-//    std::string (return type) --> T
+//    std::string, size_t (returned pair) --> ContType, IntType
 template <typename _RandDist, typename _RandDev>
-std::string
-random_subsequence(const std::string& seq, size_t m, _RandDist& dist, _RandDev& dev)
+std::pair<std::string, size_t>
+random_subsequence_position(const std::string& seq, size_t m, _RandDist& dist, _RandDev& dev)
 {
   size_t j = dist(dev);
-  return std::string(seq.begin() + j, seq.begin() + j + m);
+  return std::make_pair(std::string(seq.begin() + j, seq.begin() + j + m), j);
 }
 
 // TODO: Generation of sequencing indexes
@@ -32,7 +32,7 @@ random_subsequence(const std::string& seq, size_t m, _RandDist& dist, _RandDev& 
 int
 main(int argc, char** argv)
 {
-  std::cout << "\n";
+  std::cerr << "\n";
 
   // arguments check and conversion
   if (argc < 3) {
@@ -52,18 +52,24 @@ main(int argc, char** argv)
   auto rdev = std::mt19937(rd());
   auto unif = std::uniform_int_distribution<>(0, hgp.second.size()-m-1);
 
-  std::cout << "GENOME:  " << hgp.first << "\n"
-	    << "SIZE:    " << hgp.second.size() << "\n";
+  std::cerr << "GENOME:  " << hgp.first << "\n"
+	    << "SIZE:    " << hgp.second.size() << "\n\n";
 
+  // can become a templated function with template params:
+  //   - ED algorithm
+  //   - Random dist and device
+  //   - output stream
+  
   // actual computationa and saving
+  std::cout << "position1,position2,distance\n";
   auto wf = ctl::make_wf_alg(m,m);
   for (size_t i = 0; i < N; ++i) {
-    std::string s1 = random_subsequence(hgp.second, m, unif, rdev);
-    std::string s2 = random_subsequence(hgp.second, m, unif, rdev);
-    std::cout << wf(s1, s2) << "\n";
+    auto p1 = random_subsequence_position(hgp.second, m, unif, rdev);
+    auto p2 = random_subsequence_position(hgp.second, m, unif, rdev);    
+    std::cout << p1.second << "," << p2.second << "," << wf(p1.first, p2.first) << "\n";
   }
-  
-  std::cout << "\n";
+
+  std::cerr << "\n";
   
   return 0;
 }
