@@ -18,10 +18,12 @@
 
 #include <io/stream_map.hpp>
 #include <str/distance.hpp>
+#include <str/kmer.hpp>
 #include <btl/io.hpp>
 
 #include <iostream>
 #include <random>
+#include <map>
 
 // good candidate for templating:
 //    std::string, size_t (returned pair) --> ContType, IntType
@@ -85,7 +87,16 @@ main(int argc, char** argv)
   auto unif = std::uniform_int_distribution<>(0, hgp.second.size()-m-1);
 
   std::cerr << "GENOME:  " << hgp.first << "\n"
-	    << "SIZE:    " << hgp.second.size() << "\n\n";
+	    << "SIZE:    " << hgp.second.size() << "\n";
+  std::map<std::string, std::size_t> mm;
+  ctl::kmer_statistics(hgp.second, 1, mm);
+  std::cerr << "BASE DISTRIBUTION:\n";
+  for (auto p : mm) {
+    std::cerr << "        " << p.first << ": " << p.second << " "
+	      << (static_cast<double>(p.second) / hgp.second.size()) << "\n";
+  }
+  std::cerr << "\n";
+  
 
   auto wf = ctl::make_wf_alg(m,m);
   compute(hgp.second, m, N, wf, unif, rdev, std::cout);
