@@ -1,3 +1,21 @@
+/*
+ ged.cpp
+
+ Copyright 2019 Michele Schimd
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+*/
+
 #include <io/stream_map.hpp>
 #include <str/distance.hpp>
 #include <btl/io.hpp>
@@ -28,6 +46,20 @@ random_subsequence_position(const std::string& seq, size_t m, _RandDist& dist, _
 //   4. Others
 //      a. Exact amount of overlap (>0)
 
+template <typename AlgED_, typename DistT_, typename RandD_, typename OutT_>
+void
+compute(const std::string& genome, size_t m, size_t N, AlgED_& wf, DistT_& dist,
+	RandD_& rdev, OutT_& out)
+{
+  out << "position1,position2,distance\n";
+  
+  for (size_t i = 0; i < N; ++i) {
+    auto p1 = random_subsequence_position(genome, m, dist, rdev);
+    auto p2 = random_subsequence_position(genome, m, dist, rdev);    
+    out << p1.second << "," << p2.second << "," << wf(p1.first, p2.first) << "\n";
+  }
+}
+
 
 int
 main(int argc, char** argv)
@@ -55,19 +87,8 @@ main(int argc, char** argv)
   std::cerr << "GENOME:  " << hgp.first << "\n"
 	    << "SIZE:    " << hgp.second.size() << "\n\n";
 
-  // can become a templated function with template params:
-  //   - ED algorithm
-  //   - Random dist and device
-  //   - output stream
-  
-  // actual computationa and saving
-  std::cout << "position1,position2,distance\n";
   auto wf = ctl::make_wf_alg(m,m);
-  for (size_t i = 0; i < N; ++i) {
-    auto p1 = random_subsequence_position(hgp.second, m, unif, rdev);
-    auto p2 = random_subsequence_position(hgp.second, m, unif, rdev);    
-    std::cout << p1.second << "," << p2.second << "," << wf(p1.first, p2.first) << "\n";
-  }
+  compute(hgp.second, m, N, wf, unif, rdev, std::cout);
 
   std::cerr << "\n";
   
