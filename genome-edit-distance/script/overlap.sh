@@ -13,5 +13,5 @@ echo $count
 
 for s in `seq $smin $count`
 do
-    ../ged.o $f $n $N $s > ~/ed/ged/${filename}_n${n}_N${N}_s${s}.csv
+    ../ged.o $f $n $N $s > ~/ed/ged/ecoli_N1000_n256/${filename}_n${n}_N${N}_s${s}.csv
 done

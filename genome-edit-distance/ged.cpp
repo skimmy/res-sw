@@ -110,7 +110,8 @@ struct Options
 //    std::string, size_t (returned pair) --> ContType, IntType
 template <typename _RandDist, typename _RandDev>
 std::pair<std::string, size_t>
-random_subsequence_position(const std::string& seq, size_t m, _RandDist& dist, _RandDev& dev)
+random_subsequence_position(const std::string& seq, size_t m, _RandDist& dist,
+			    _RandDev& dev)
 {
   size_t j = dist(dev);
   return std::make_pair(std::string(seq.begin() + j, seq.begin() + j + m), j);
@@ -119,7 +120,8 @@ random_subsequence_position(const std::string& seq, size_t m, _RandDist& dist, _
 // returns s1, s2, pos1
 template <typename _RandDist, typename _RandDev>
 std::tuple<std::string, std::string, size_t>
-random_overlapping_subsequences(const std::string& seq, size_t m, size_t w, _RandDist& dist, _RandDev& dev)
+random_overlapping_subsequences(const std::string& seq, size_t m, size_t w,
+				_RandDist& dist, _RandDev& dev)
 {
   size_t j = dist(dev);
   return std::make_tuple(
@@ -168,7 +170,8 @@ compute(const std::string& genome, size_t m, size_t N, size_t s,
     p1 = random_subsequence_position(genome, m, dist, rdev);
     if (s > 0) {
       p2.second = p1.second + m - s;
-      p2.first = std::string(genome.begin() + p2.second, genome.begin() + p2.second + m);
+      p2.first = std::string(genome.begin() + p2.second,
+			     genome.begin() + p2.second + m);
     } else {
       p2 = random_subsequence_position(genome, m, dist, rdev);
     }
