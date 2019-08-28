@@ -40,24 +40,69 @@ struct Options
   std::size_t read_length;
   std::size_t read_count;
   std::size_t read_overlap;
+  int         verbosity;
 
   Options(int argc, char** argv)
-    : fasta_path {""}, read_length {10}, read_count {1}, read_overlap {0}
+    : fasta_path {""}, read_length {10}, read_count {1},
+      read_overlap {0}, verbosity {0}
   {
-    // arguments check and conversion
-    if (argc < 3) {
-      std::cout << "Error in invocation\n";
-      std::cout << "Usage:\n\tged fasta [m N s]\n\n"; 
-      exit(1);
+    // when only one paramter is given it assumed to be a key=value
+    // file, otherwise there is a specific order in which parameters
+    // must be specified
+    if (argc == 2) {
+      std::ifstream is {argv[1]};
+      auto kv_map = ctl::stream_to_map<std::string, std::string>(is,'=','#');
+      auto it_end = kv_map.end();
+      if (kv_map.find("fasta") != it_end) {
+	fasta_path = kv_map["fasta"];
+      }
+      else {
+	std::cout << "Configuration file error\n";
+	exit(1);
+      }
+      if(kv_map.find("n") != it_end) {
+	read_length = ctl::from_string<std::size_t>(kv_map["n"]);
+      }
+      if (kv_map.find("N") != it_end) {
+	read_count = ctl::from_string<std::size_t>(kv_map["N"]);     
+      }
+      if (kv_map.find("s") != it_end) {
+	read_overlap = ctl::from_string<std::size_t>(kv_map["s"]);
+      }
+      if(kv_map.find("verbosity") != it_end) {
+	verbosity = ctl::from_string<int>(kv_map["verbosity"]);
+      }
+      
+    } else {
+    
+
+      //arguments check and conversion
+      if (argc < 3) {
+	std::cout << "Error in invocation\n";
+	std::cout << "Usage:\n\tged fasta [m N s]\n\n"; 
+	exit(1);
+      }
+      fasta_path = argv[1];
+      read_length = ctl::from_string<size_t>(std::string(argv[2]));
+      if (argc >= 4) {
+	read_count = ctl::from_string<size_t>(std::string(argv[3]));
+      }
+      if (argc >= 5) {
+	read_overlap = ctl::from_string<size_t>(std::string(argv[4]));
+      }
     }
-    fasta_path = argv[1];
-    read_length = ctl::from_string<size_t>(std::string(argv[2]));
-    if (argc >= 4) {
-      read_count = ctl::from_string<size_t>(std::string(argv[3]));
-    }
-    if (argc >= 5) {
-      read_overlap = ctl::from_string<size_t>(std::string(argv[4]));
-    }
+  }
+
+  void
+  print(std::ostream& os) {
+    os << "Options\n";
+    os << "-------\n\n";
+    os << "  File          " << fasta_path   << "\n";
+    os << "  Read len   n= " << read_length  << "\n";
+    os << "  Read count N= " << read_count   << "\n";
+    os << "  Overlap       " << read_overlap << "\n";
+    os << "  Verbosity     " << verbosity    << "\n";
+    os << "\n";
   }
 };
 
@@ -113,14 +158,15 @@ void
 compute(const std::string& genome, size_t m, size_t N, size_t s,
 	AlgED_& wf,  RandD_& rdev, OutT_& out, bool header = true)
 {
-  auto dist = std::uniform_int_distribution<>(0, genome.size()-m-1);
+  size_t slack = s>0 ? m-s : 0;
+  auto dist = std::uniform_int_distribution<>(0, genome.size()-m-1-slack);
   if (header) {
     out << "position1,position2,distance\n";
   }
   std::pair<std::string, size_t> p1, p2;
   for (size_t i = 0; i < N; ++i) {
     p1 = random_subsequence_position(genome, m, dist, rdev);
-    if (s) {
+    if (s > 0) {
       p2.second = p1.second + m - s;
       p2.first = std::string(genome.begin() + p2.second, genome.begin() + p2.second + m);
     } else {
@@ -137,23 +183,28 @@ main(int argc, char** argv)
   std::cerr << "\n";
 
   Options opts(argc, argv);
+  if (opts.verbosity >= 2) {
+    opts.print(std::cerr);
+  }
   
   // Initializations
   btl::HeaderGenomePair hgp = btl::read_fasta(opts.fasta_path);
   std::random_device rd;
   auto rdev = std::mt19937(rd());
-  
-  // print some information on the input
-  std::cerr << "GENOME:  " << hgp.first << "\n"
-	    << "SIZE:    " << hgp.second.size() << "\n";
-  std::map<std::string, std::size_t> mm;
-  ctl::kmer_statistics(hgp.second, 1, mm);
-  std::cerr << "BASE DISTRIBUTION:\n";
-  for (auto p : mm) {
-    std::cerr << "        " << p.first << ": " << p.second << " "
-	      << (static_cast<double>(p.second) / hgp.second.size()) << "\n";
+
+  if (opts.verbosity >= 1) {
+    // print some information on the input
+    std::cerr << "GENOME:  " << hgp.first << "\n"
+	      << "SIZE:    " << hgp.second.size() << "\n";
+    std::map<std::string, std::size_t> mm;
+    ctl::kmer_statistics(hgp.second, 1, mm);
+    std::cerr << "BASE DISTRIBUTION:\n";
+    for (auto p : mm) {
+      std::cerr << "        " << p.first << ": " << p.second << " "
+		<< (static_cast<double>(p.second) / hgp.second.size()) << "\n";
+    }
+    std::cerr << "\n";
   }
-  std::cerr << "\n";
 
   // actual computation
   size_t m = opts.read_length;
