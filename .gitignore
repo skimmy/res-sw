@@ -31,6 +31,16 @@
 *.out
 *.app
 
-# Temporary editor files
-*.*~
-*.*#
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+
+# Mac OS indexing
+.DS_store
