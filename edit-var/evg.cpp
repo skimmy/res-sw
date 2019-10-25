@@ -1,6 +1,7 @@
 #include <ctl.h>
 
 #include <string>
+#include <vector>
 #include <list>
 #include <iostream>
 
@@ -13,15 +14,31 @@ class local_var
   
 };
 
-template <typename StrT_, typename ContT_>
-class edit_var
+using Variation = local_var<std::size_t, std::string>;
+using VariationList = std::list<Variation>;
+
+template <typename VarsT_, typename TagT_>
+class sequence_var
 {
-  StrT_  backbone;
-  ContT_ variations; 
+  TagT_  tag;
+  VarsT_ variations;
 };
 
-using Variations = local_var<std::size_t, std::string>;
-using EditVars   = edit_var<std::string, std::list<Variations>>;
+using SequenceVariant = sequence_var<VariationList, int>;
+
+
+template <typename StrT_, typename SeqVarsT_>
+class edit_var
+{
+  StrT_     backbone;
+  SeqVarsT_ variations;
+};
+
+// Preferred variations structure has
+//   backbone   : std::string
+//   variations : voctor of SequenceVariation
+using EditVars = edit_var<std::string,
+			  std::vector<SequenceVariant>>;
 
 int
 main(int argc, char** argv)
