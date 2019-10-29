@@ -21,9 +21,24 @@
 #include <list>
 #include <iostream>
 
+// To be moved in a common header
+
+// These are the type of variation as int
+constexpr int SubstitutionType = 1;
+constexpr int InsertionType    = 2;
+constexpr int DeletionType     = 3;
+
 // TODO: Study and, if appropriate, support to rGFA
 // https://github.com/lh3/gfatools/blob/master/doc/rGFA.md
 // by Heng Li
+
+// TODO: The order in which insertions and deletions are applied is
+// not unimportant. We must find a way to make the act of a script
+// consisten regardless such order. Probably we must go through an
+// intermediate representation.
+
+// TODO: It is about time to split the file into different units each
+// with header and source (if appropriate)
 
 template <typename PosT_, typename StrT_, typename TypeT_ = int>
 class local_var
@@ -31,10 +46,15 @@ class local_var
 private:
   PosT_  j;
   StrT_  v;
-  TypeT_ type;
+  TypeT_ t;
 public:
   local_var(PosT_ j_, StrT_ v_, TypeT_ t_)
-    : j(j_), v(v_), type(t_) { }
+    : j(j_), v(v_), t(t_) { }
+
+  PosT_ position() const { return j; }
+  StrT_ variation() const { return v; }
+  TypeT_ type() const { return t; }
+  
 };
 
 
@@ -57,6 +77,37 @@ public:
 
   void
   add_variation(VarT_ v_) { variations.push_back(v_); }
+
+  // !! Probably this should go outside this class
+  template <typename StrT_>
+  StrT_
+  apply(const StrT_& ref)
+  {
+    StrT_ str(ref);
+    for(VarT_ var : variations)
+    {
+      
+      auto type = var.type();
+      auto pos  = var.position();
+      auto vstr = var.variation();
+      // !! There must implicit conversion of type to integer
+
+      // Substitution
+      if (type == SubstitutionType) {
+	std::copy(vstr.begin(), vstr.end(), str.begin()+pos);
+      }
+      // Deletion
+      // Mark deleted symbols with '-'
+      
+      // Insertion Insert position always refer to original
+      // string. Thus if j is found, it means insert BEFORE ref[j]
+      // j=0,...,n. When j=n menas insert at the end.
+    }
+
+    // copy without '-' (deletions)
+    return str;
+  }
+  
 };
 
 
@@ -90,10 +141,7 @@ public:
 
 };
 
-// These are the type of variation as int
-constexpr int SubstitutionType = 1;
-constexpr int InsertionType    = 2;
-constexpr int DeletionType     = 3;
+
 
 // Variation is represented as: position, text and type
 using Variation = local_var<std::size_t, std::string, int>;
@@ -120,6 +168,19 @@ Variation
 make_sub_var(std::size_t j, const std::string& v)
 {
   return Variation(j, v, SubstitutionType);
+}
+
+Variation
+make_ins_var(std::size_t j, const std::string& v)
+{
+  return Variation(j, v, InsertionType);
+}
+
+Variation
+make_del_var(std::size_t j, std::size_t d)
+{
+  // !! Inefficient representation of deletions
+  return Variation(j, std::string("-", d), DeletionType);
 }
 
 // --------------------- VariationList ---------------------
@@ -158,8 +219,9 @@ main(int argc, char** argv)
 {
   std::string ref {"ACGACTACCACACAT"};
   EditVars evg {ref};
-  Variation vs = make_sub_var(0, "AG");
-  std::vector<Variation> v { vs };
+  Variation vs  = make_sub_var(0, "AG");
+  Variation vs2 = make_del_var(5,2); 
+  std::vector<Variation> v { vs, vs2 };
   auto v2 = make_variation_list_from_iterator(v.begin(), v.end());
   SequenceVariant var1 = make_empty_sequence_variant(100);
   SequenceVariant var2 = make_sequence_variant(v2, 2);
@@ -170,5 +232,7 @@ main(int argc, char** argv)
   std::cout << "Backbone Sequence\n " << evg.backbone_sequence()
 	    << "\nNumber of variants: " << evg.variant_count()
 	    << "\n";
+
+  std::cout << "V2 -> " << var2.apply<std::string>(ref) << "\n";
   return 0;
 }
