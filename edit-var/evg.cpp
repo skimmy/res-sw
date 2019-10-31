@@ -180,7 +180,7 @@ Variation
 make_del_var(std::size_t j, std::size_t d)
 {
   // !! Inefficient representation of deletions
-  return Variation(j, std::string("-", d), DeletionType);
+  return Variation(j, std::string(d, '-'), DeletionType);
 }
 
 // --------------------- VariationList ---------------------
@@ -214,13 +214,60 @@ make_sequence_variant(VariationList vlist, int tag)
   return SequenceVariant(vlist, tag);
 }
 
+
+// !!! Elements in 'v' must be sorted wrt the position.
+// In all other cases the output is meaningless (it may
+// even lead to unexpected behavior, crash included).
+std::string
+apply_script_to_string(const VariationList& v, const std::string& x)
+{
+  if (v.size() == 0) {
+    return std::string(x);
+  }
+  // iterator through all variation
+  auto vl_b = v.begin();
+  std::string y;
+  std::size_t n = x.size();
+  std::size_t j = 0;
+  while (j<n && vl_b != v.end()) {
+    std::size_t p = vl_b->position();
+    std::string w = vl_b->variation();
+    int t = vl_b->type();
+    std::cout << "\t(" << p << "," << w << "," << t << ")\n";
+    while(j<p) {
+      y += x[j];
+      ++j;
+    }
+    if (t == SubstitutionType) {
+      y += w;
+      j += w.size();
+    } 
+    if(t == InsertionType) {
+	y += w;
+    } 
+    if (t == DeletionType) {
+      j += w.size();
+    }
+    ++vl_b;
+  }
+  // there may be some match remaining
+  while(j<n) {
+    y += x[j];
+    ++j;
+  }
+  return y;
+}
+
 int
 main(int argc, char** argv)
 {
   std::string ref {"ACGACTACCACACAT"};
   EditVars evg {ref};
-  Variation vs  = make_sub_var(0, "AG");
-  Variation vs2 = make_del_var(5,2); 
+  Variation vs  = make_sub_var(0, "TG");
+  Variation vs2 = make_del_var(5,2);
+  // ACGACTACCACACAT
+  // tg   --
+  // TGGACCCACACAT
   std::vector<Variation> v { vs, vs2 };
   auto v2 = make_variation_list_from_iterator(v.begin(), v.end());
   SequenceVariant var1 = make_empty_sequence_variant(100);
@@ -233,6 +280,10 @@ main(int argc, char** argv)
 	    << "\nNumber of variants: " << evg.variant_count()
 	    << "\n";
 
-  std::cout << "V2 -> " << var2.apply<std::string>(ref) << "\n";
+  std::cout << "[REMOve] V2 -> " << var2.apply<std::string>(ref)
+	    << "\n";
+
+  std::cout << "Var -> " << apply_script_to_string(v2, ref)
+	    << "\n";
   return 0;
 }
