@@ -1,8 +1,50 @@
 #include <ctl.h>
+#include <data_structure/matrix.hpp>
+#include <iterator/string_iterator.hpp>
+#include <str/distance.hpp>
 
+#include <cmath>
 #include <string>
 #include <list>
 #include <iostream>
+
+// This function should eventually become a template that allows
+// allows generic DP algorithms by specifying a matrix an an update
+// rule. Then, the function will be inserted into ctl.
+
+// For now this computes the DP matrix for probabilies of all scripts
+// Templatable parts:
+//   x,y strings -> StrT
+//   ps vector<double> ProbsT
+//   return type double -> ValT
+double
+ed_scripts_probability(const std::string& x, const std::string& y,
+		       const std::vector<double> ps) {
+  size_t n = x.size();
+  size_t m = y.size();
+  double pM = ps[0];
+  double pS = ps[1];
+  double pD = ps[2];
+  double pI = ps[3];
+  ctl::_2D_array<double> dpm(n+1 ,m+1);
+  // initialization 
+  dpm(0,0) = 1;
+  for (size_t i = 1; i<n+1; ++i) {
+    dpm(i,0) = dpm(i-1,0) * pD;
+  }
+  for (size_t j = 1; j<m+1; ++j) {
+    dpm(0,j) = dpm(0,j-1) * pI;
+  }
+
+  for (size_t i = 1; i<n+1; ++i) {
+    for (size_t j = 1; j<m+1; ++j) {
+      double pMS = (x[i-1]==y[j-1]) ? pM : pS;
+      dpm(i,j) = dpm(i-1,j)*pD + dpm(i,j-1)*pI + dpm(i-1,j-1)* pMS;
+    }
+  }
+  
+  return dpm(n,m);
+}
 
 template <typename ItT>
 std::size_t script_cost(ItT b, ItT e) {
@@ -76,5 +118,23 @@ main(int argc, char** argv)
 	      << ")\t" << script_cost(s.first.begin(), s.first.end()) << "\n";
   }
   std::cout << "Total scripts: " << L.size() << "\n";
+
+
+  std::vector<std::string> strs { "AAAA", "TTTT", "GGGG", "CCCC", "ACGT", "ACAT"};
+  std::vector<double> probs {0.6,0.2,0.1,0.1};
+  ctl::SigmaNIterator strIt(4,"ACGT");
+  ctl::SigmaNIterator strItEnd;
+//  for (std::string yy : strs) {
+  auto wf = ctl::make_wf_alg(5,5);
+  wf.init();
+  x = "ACTA";
+  while(strIt != strItEnd) {
+    std::string yy = *strIt;
+    double PE = ed_scripts_probability(x,yy, probs);
+//    std::cout << "P(" << yy << ")\t" << PE << "\n";
+    std::cout << yy << "," << PE << "," << wf(x,yy) << "\n";
+    ++strIt;
+  }
+  
   return 0;
 }
