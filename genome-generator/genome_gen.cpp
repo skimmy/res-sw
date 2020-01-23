@@ -67,6 +67,7 @@ main(int argc, char** argv) {
   std::random_device rd;
   std::default_random_engine rdev(rd());
   std::string genome = btl::random_genome_string(G, dist, rdev);
+  genome += "\n";
   btl::write_fasta(std::cout, genome, header);
   return 0;
 }
