@@ -21,9 +21,18 @@
 
 #include <btl/io.hpp>
 
+// TODOs
+// - Length distribution 
+// - Parameter file
+// - Distribution of errors as input parameter
+// - Quality values
+// - Edit script in verbose mode
+
 template <typename StrT, typename IterT, typename RandD>
 StrT
-hamming_error(IterT b, IterT e, double pe, RandD& rd) {
+edit_error(IterT b, IterT e, std::vector<double> p, RandD& rd) {
+  p.push_back(1.0 - p[0] - p[1] - p[2]);
+  std::string op_str = "SDIM";  
   std::map<char, std::string> subs_map = {
     {'A', "CGT"},
     {'C', "AGT"},
@@ -31,17 +40,36 @@ hamming_error(IterT b, IterT e, double pe, RandD& rd) {
     {'T', "ACG"},
     {'*', "ACGT"}
   };
+
+  std::discrete_distribution<int> op_dist(p.begin(), p.end());
+  std::uniform_int_distribution<int> sub_dist(0,2);
+  std::uniform_int_distribution<int> ins_dist(0,3);
+
+  // TODO: keep track of the script to put on verbose out
   StrT out;
-  std::uniform_real_distribution<double> psub(0.0,1.0);
-  std::uniform_int_distribution<int> sdist(0,2);
   while (b != e) {
     auto c = *b;
-    if (psub(rd) < pe) {
-      c = subs_map[c][sdist(rd)];
+    char op = op_str[op_dist(rd)];
+    switch(op) {
+    case 'M':
+      out.push_back(c);
+      ++b;
+      break;
+    case 'S':
+      out.push_back(subs_map[c][sub_dist(rd)]);
+      ++b;
+      break;
+    case 'I':
+      out.push_back(subs_map['*'][ins_dist(rd)]);
+      ++b;
+      break;
+    case 'D':
+      ++b;
+      break;
+    default:
+      ++b;
+      break;
     }
-    out.push_back(c);
-    
-    ++b;
   }
   return out;
 }
@@ -49,7 +77,13 @@ hamming_error(IterT b, IterT e, double pe, RandD& rd) {
 template <typename RandD>
 std::string
 string_hamming_error(const std::string& r, double pe, RandD& rd) {
-  return hamming_error<std::string, decltype(r.begin()), RandD>(r.cbegin(), r.cend(), pe, rd);
+  return edit_error<std::string, decltype(r.begin()), RandD>(r.cbegin(), r.cend(), {pe, 0.0, 0.0}, rd);
+}
+
+template <typename RandD>
+std::string
+string_edit_error(const std::string& r, std::vector<double> pe, RandD& rd) {
+  return edit_error<std::string, decltype(r.begin()), RandD>(r.cbegin(), r.cend(), pe, rd);
 }
 
 int
@@ -95,18 +129,20 @@ main(int argc, char** argv)
     size_t j = pdist(rdev);
     size_t Lj = L;
     std::string r {genome.second.begin() + j, genome.second.begin()+j+Lj};
+    std::string ver_h = (verbose_out) ? (" (" + r + ") ") : "";
+    std::cout << ">id=" << i << " j=" << j << ver_h << "\n";
     // Error
     switch (error) {
     case 1: // hamming error
+      r = string_hamming_error(r, 0.1, rd);
       break;
     case 2: // edit error
+      r = string_edit_error(r, {0.1, 0.05, 0.05}, rd);
       break;
     default:
       break;
     }
-    std::string ver_h = (verbose_out) ? (" (" + r + ") ") : "";
-    std::cout << ">id=" << i << " j=" << j << ver_h << "\n";
-    std::cout << string_hamming_error(r, 0.1, rd) << "\n";
+    std::cout << r << "\n";
   }
   
   return 0;

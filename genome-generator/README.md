@@ -7,10 +7,11 @@ This software can be used to generate genomes in ``fasta`` format
 
 ### Options
 ``size`` represent the number of bases (mandatory)
-``dist`` the distribution (optional)
+``dist`` the distribution either code (one numbero) or weights (four numbers)(optional)
 
 - 1: GC-Rich
 - 2: GC-Poor
+- pa,pc,pg,pt: 
 
 
 ## Examples
