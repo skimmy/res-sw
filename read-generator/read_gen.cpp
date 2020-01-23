@@ -21,6 +21,37 @@
 
 #include <btl/io.hpp>
 
+template <typename StrT, typename IterT, typename RandD>
+StrT
+hamming_error(IterT b, IterT e, double pe, RandD& rd) {
+  std::map<char, std::string> subs_map = {
+    {'A', "CGT"},
+    {'C', "AGT"},
+    {'G', "ACT"},
+    {'T', "ACG"},
+    {'*', "ACGT"}
+  };
+  StrT out;
+  std::uniform_real_distribution<double> psub(0.0,1.0);
+  std::uniform_int_distribution<int> sdist(0,2);
+  while (b != e) {
+    auto c = *b;
+    if (psub(rd) < pe) {
+      c = subs_map[c][sdist(rd)];
+    }
+    out.push_back(c);
+    
+    ++b;
+  }
+  return out;
+}
+
+template <typename RandD>
+std::string
+string_hamming_error(const std::string& r, double pe, RandD& rd) {
+  return hamming_error<std::string, decltype(r.begin()), RandD>(r.cbegin(), r.cend(), pe, rd);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -43,6 +74,8 @@ main(int argc, char** argv)
   int error = 0; // No error
   bool circular = true;
   int pos = 0;
+
+  bool verbose_out = true;
   
   if (argc == 5) {
     error = ctl::from_string<int>(argv[4]);
@@ -71,8 +104,9 @@ main(int argc, char** argv)
     default:
       break;
     }
-    std::cout << ">id=" << i << " j=" << j << "\n";
-    std::cout << r << "\n";
+    std::string ver_h = (verbose_out) ? (" (" + r + ") ") : "";
+    std::cout << ">id=" << i << " j=" << j << ver_h << "\n";
+    std::cout << string_hamming_error(r, 0.1, rd) << "\n";
   }
   
   return 0;
