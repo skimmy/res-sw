@@ -97,6 +97,7 @@ main(int argc, char** argv)
   
   if (argc < 4) {
     std::cerr << "Invalid usage\n  read-gen G N L [Err]\n";
+    std::exit(1);
   }
 
   std::string gen_file { argv[1] };
@@ -109,7 +110,7 @@ main(int argc, char** argv)
   bool circular = true;
   int pos = 0;
 
-  bool verbose_out = true;
+  bool verbose_out = false;
   
   if (argc == 5) {
     error = ctl::from_string<int>(argv[4]);
